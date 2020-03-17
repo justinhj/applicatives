@@ -69,6 +69,8 @@ libraryDependencies ++= Seq(
   "dev.zio" %% "zio-streams" % ZIOVersion,
   // type classes
   "com.github.mpilquist" %% "simulacrum" % "0.12.0",
+  "org.scalacheck" %% "scalacheck" % "1.13.4" % "test",
+
   // li haoyi ammonite repl embed
   "com.lihaoyi" % "ammonite" % AmmoniteVersion % "test" cross CrossVersion.full
 )

@@ -4,7 +4,6 @@ package org.justinhj
 // by CONOR MCBRIDE, University of Nottingham and
 // ROSS PATERSON, City University, London
 
-import cats.Applicative
 import cats.implicits._
 import cats.effect.IO
 
@@ -47,13 +46,26 @@ object Applicatives {
     ios match {
       case Nil =>
         IO.pure(List.empty[A])
+      // case c :: cs =>
+      //   val w1 = IO.pure((a: A) => (listA: List[A]) => a +: listA)
+      //   val w2 = w1.ap(c)
+      //   val w3 = w2.ap(sequence(cs))
+      //   w3
       case c :: cs =>
-        val w1 = IO.pure((a: A) => (listA: List[A]) => a +: listA)
-        val w2 = w1.ap(c)
-        val w3 = w2.ap(sequence(cs))
-        w3
+        IO.pure((a:A) => (as:List[A])
+            => a +: as)
+          .ap(c)
+          .ap(sequence(cs))
     }
   }
+
+  // which every Monad must provide, lifts pure values to the effectful world,
+  // whilst ap provides ‘application’ within it
+
+  // Except for the noise of the returns and aps, this definition is in a fairly standard
+  // applicative style, even though effects are present.
+
+  // Justin Note: what does applicative style mean here?
 
   def printIO(out: String): IO[Unit] = {
     IO.delay(println(out))
