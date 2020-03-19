@@ -77,16 +77,16 @@ object Applicatives {
     }
   }
 
-  // Note that the default instance for IO is a monad, and ap is implemented as flatMap
-  // to get actual parallelism we need the applicative instance of IO which is done
-  // using the IO.Par newtype (a wrapper type on IO to identify it as the applicative)
+  // Note that the default instance for IO is a monad, and ap is implemented with flatMap
+  // to get actual parallelism we need the applicative instance of IO.
+  // To select the applicative instance we need to use IO.Par.
 
   def parApplicativeSequence[A](ios: List[IO.Par[A]])
     (implicit applicative : CommutativeApplicative[IO.Par]):
       IO.Par[List[A]] = {
     ios match {
       case Nil =>
-        Par(IO.pure(List.empty[A]))
+        Par(IO.pure(List()))
       case c :: cs =>
         Par(IO((a: A) => (listA: List[A]) => a +: listA))
           .ap(c)
@@ -94,19 +94,16 @@ object Applicatives {
     }
   }
 
-  // Now we get into some applications of applicative :D . First one is
+  // Now we get into some applications of applicative. First one is
   // matrix tranpose
 
   // EG:
   // List((1,2,3),(4,5,6),(7,8,9))
 
-  // You can do this in applicative style with zipWith
+  // You can do this in applicative style, and it uses Haskell's zipWith
   // zipWith :: (a -> b -> c) -> [a] -> [b] -> [c]
 
   // In Scala zipWith[A,B,C](f: (A,B) => C, fa: List[A], fb: List[B]): List[C]
-  // Well we call this map2
-
-  // Applicative[List].map2(List(1,2,3), List(4,5,6))(((a: Int),(b: Int)) => List(a + b))
 
   // transpose :: [[a ]] → [[a ]]
   // transpose [ ] = repeat [ ]
@@ -121,32 +118,29 @@ object Applicatives {
 
   def repeat[A](a: A): LazyList[A] = a #:: repeat(a)
 
-  def transposeS[A](matrix: LazyList[LazyList[A]]): LazyList[LazyList[A]] = {
+  def transpose[A](matrix: LazyList[LazyList[A]]): LazyList[LazyList[A]] = {
     matrix match {
       case LazyList() => repeat(LazyList.empty)
       case xs #:: xss =>
-        zipWith(xs,transposeS(xss)) {
+        zipWith(xs,transpose(xss)) {
           case (a, as) =>
             a +: as
         }
     }
   }
 
-  def transpose[A](matrix: List[List[A]]): List[List[A]] = {
-    matrix match {
-      case Nil => List.empty[List[A]]
-      case xs :: xss =>
-        Applicative[List].map2(xs, (transpose(xss))) {
-          case (a, as) =>
-            println(a + " " + as)
-            a +: as
-        }
+  // Given repeat and zapp (see below), we can make a generalized version of the
+  // binary zipWith
+  def zapp[A,B](fs: LazyList[A => B])(as: LazyList[A]): LazyList[B] = {
+    val zipped = fs.zip(as)
+    zipped.map {
+      case (f, a) => f(a)
     }
   }
 
   def printIO(out: String): IO[Unit] = {
     for (
-      _ <- IO.sleep(3 second);
+      _ <- IO.sleep(500 milliseconds);
       _ <- IO(println(out))
     ) yield ()
   }
@@ -175,17 +169,16 @@ object Applicatives {
     // val progC = progCList.parSequence
     // progC.unsafeRunSync()
 
-    // Using my parallel sequence
-    //val parIos = ios.map(Par.apply)
-    //val progB = Par.unwrap(parApplicativeSequence(parIos))
-    //progB.unsafeRunSync()
-
+    // Using parallel sequence
+    val parIos = ios.map(Par.apply)
+    val progB = Par.unwrap(parApplicativeSequence(parIos))
+    progB.unsafeRunSync()
 
     println("fin")
 
     // transpose
 
-    val matrix = LazyList(LazyList(1,2),LazyList(4,5))
+    val matrix = LazyList(LazyList(1,2,3,4,5),LazyList(6,7,8,9,10),LazyList(11,12,13,14,15))
     matrix.foreach {
       l =>
         l.foreach{
@@ -195,7 +188,7 @@ object Applicatives {
         println()
       }
 
-    val transposed = transposeS(matrix)
+    val transposed = transpose(matrix)
     transposed.foreach {
       l =>
         l.foreach{
