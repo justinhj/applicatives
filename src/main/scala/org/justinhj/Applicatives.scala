@@ -9,15 +9,16 @@ import cats.CommutativeApplicative
 
 object Applicatives {
 
-  import cats._
-  import cats.data.NonEmptyList
+  // import cats._
   import cats.effect.ContextShift
-  import cats.syntax.parallel._
+  import cats.Applicative
+  // import cats.syntax.parallel._
   import cats.effect.IO
   import cats.effect.IO.Par
   import cats.implicits._
   import scala.concurrent.ExecutionContext
   import scala.concurrent.duration._
+//  import cats.data.NonEmptyLazyList
 
   // Some things needed by Cats Effect
   implicit val timer = IO.timer(ExecutionContext.global)
@@ -93,10 +94,60 @@ object Applicatives {
     }
   }
 
+  // Now we get into some applications of applicative :D . First one is
+  // matrix tranpose
+
+  // EG:
+  // List((1,2,3),(4,5,6),(7,8,9))
+
+  // You can do this in applicative style with zipWith
+  // zipWith :: (a -> b -> c) -> [a] -> [b] -> [c]
+
+  // In Scala zipWith[A,B,C](f: (A,B) => C, fa: List[A], fb: List[B]): List[C]
+  // Well we call this map2
+
+  // Applicative[List].map2(List(1,2,3), List(4,5,6))(((a: Int),(b: Int)) => List(a + b))
+
+  // transpose :: [[a ]] → [[a ]]
+  // transpose [ ] = repeat [ ]
+  // transpose (xs : xss) = zipWith (:) xs (transpose xss)
+
+  // There is no zipWith in Scala, and we need a lazy list so we need to implement
+  // zipWith for LazyList
+
+  def zipWith[A,B,C](as: LazyList[A], bs: LazyList[B])(f: (A,B) => C): LazyList[C] = {
+    as.zip(bs).map{case (a,b) => f(a,b)}
+  }
+
+  def repeat[A](a: A): LazyList[A] = a #:: repeat(a)
+
+  def transposeS[A](matrix: LazyList[LazyList[A]]): LazyList[LazyList[A]] = {
+    matrix match {
+      case LazyList() => repeat(LazyList.empty)
+      case xs #:: xss =>
+        zipWith(xs,transposeS(xss)) {
+          case (a, as) =>
+            a +: as
+        }
+    }
+  }
+
+  def transpose[A](matrix: List[List[A]]): List[List[A]] = {
+    matrix match {
+      case Nil => List.empty[List[A]]
+      case xs :: xss =>
+        Applicative[List].map2(xs, (transpose(xss))) {
+          case (a, as) =>
+            println(a + " " + as)
+            a +: as
+        }
+    }
+  }
+
   def printIO(out: String): IO[Unit] = {
     for (
       _ <- IO.sleep(3 second);
-      _ <- IO.delay(println(out))
+      _ <- IO(println(out))
     ) yield ()
   }
 
@@ -119,17 +170,40 @@ object Applicatives {
     // val progA = applicativeSequence(ios)
     // progA.unsafeRunSync()
 
-    // Using Cats sequence
-    // val progCList = NonEmptyList.fromListUnsafe(ios).map(Par.apply)
+    // // Using Cats sequence
+    // val progCList = NonEmptyList.fromListUnsafe(ios)
     // val progC = progCList.parSequence
     // progC.unsafeRunSync()
 
-    val parIos = ios.map(Par.apply)
-    val progB = Par.unwrap(parApplicativeSequence(parIos))
-    progB.unsafeRunSync()
+    // Using my parallel sequence
+    //val parIos = ios.map(Par.apply)
+    //val progB = Par.unwrap(parApplicativeSequence(parIos))
+    //progB.unsafeRunSync()
 
 
     println("fin")
-  }
+
+    // transpose
+
+    val matrix = LazyList(LazyList(1,2),LazyList(4,5))
+    matrix.foreach {
+      l =>
+        l.foreach{
+          l2 =>
+            print(s"$l2 ")
+        }
+        println()
+      }
+
+    val transposed = transposeS(matrix)
+    transposed.foreach {
+      l =>
+        l.foreach{
+          l2 =>
+            print(s"$l2 ")
+        }
+        println()
+      }
+    }
 
 }

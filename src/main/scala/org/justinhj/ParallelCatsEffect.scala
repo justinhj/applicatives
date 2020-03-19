@@ -12,10 +12,15 @@ object ParallelCatsEffect {
 
   val anIO = IO(1)
 
-  val hello = IO.pure((a: Int) => a + 1).ap(anIO)
+  val hello = IO((a: Int) => a + 1).ap(anIO).flatMap(n => IO(println(s"hello $n")))
 
   val aLotOfIOs =
-    NonEmptyList.of(anIO, anIO)
+    NonEmptyList.of(hello, hello)
 
-  val ioOfList = aLotOfIOs.parSequence_
+  val ioOfList = aLotOfIOs.parSequence
+
+  def main(args: Array[String]): Unit = {
+    ioOfList.unsafeRunSync()
+  }
+
 }

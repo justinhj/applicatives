@@ -5,14 +5,14 @@ lazy val applicatives = (project in file(".")).
     name := "applicatives",
     organization := "org.justinhj",
     version := "0.1-SNAPSHOT",
-    scalaVersion := "2.12.10"
+    scalaVersion := "2.13.1"
     // add other settings here
   )
 
 /* scala versions and options */
-scalaVersion := "2.12.10"
+scalaVersion := "2.13.1"
 
-addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.6")
+addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.11.0" cross CrossVersion.full)
 
 // These options will be used for *all* versions.
 scalacOptions ++= Seq(
@@ -22,7 +22,8 @@ scalacOptions ++= Seq(
   , "-Xlint"
   , "-Xverify"
   , "-feature"
-  ,"-Ypartial-unification"
+  ,"-Xlog-implicit-conversions"
+  ,"-Xlog-implicits"
   //,"-Xfatal-warnings" // Recommend enable before you commit code
   , "-language:_"
   //,"-optimise"
@@ -50,11 +51,10 @@ val AmmoniteVersion = "2.0.0"
 libraryDependencies ++= Seq(
   "com.typesafe" % "config" % "1.3.1",
   // -- testing --
-  "org.scalacheck" %% "scalacheck" % "1.13.4" % "test",
-  "org.scalatest" %% "scalatest" % "3.0.1" % "test",
+  "org.scalatest" %% "scalatest" % "3.1.1" % "test",
   // -- Logging --
   "ch.qos.logback" % "logback-classic" % "1.1.3",
-  "com.typesafe.scala-logging" %% "scala-logging" % "3.9.0",
+  "com.typesafe.scala-logging" %% "scala-logging" % "3.9.2",
   // Cats
   "org.typelevel" %% "cats-core" % CatsVersion,
   "org.typelevel" %% "cats-effect" % CatsEffectVersion,
@@ -68,9 +68,7 @@ libraryDependencies ++= Seq(
   "dev.zio" %% "zio" % ZIOVersion,
   "dev.zio" %% "zio-streams" % ZIOVersion,
   // type classes
-  "com.github.mpilquist" %% "simulacrum" % "0.12.0",
-  "org.scalacheck" %% "scalacheck" % "1.13.4" % "test",
-
+  "com.github.mpilquist" %% "simulacrum" % "0.19.0",
   // li haoyi ammonite repl embed
   "com.lihaoyi" % "ammonite" % AmmoniteVersion % "test" cross CrossVersion.full
 )
