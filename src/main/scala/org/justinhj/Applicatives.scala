@@ -131,12 +131,42 @@ object Applicatives {
 
   // Given repeat and zapp (see below), we can make a generalized version of the
   // binary zipWith
+
+  // zapp :: [a → b ] → [a ] → [b ]
+  // zapp (f : fs) (x : xs) = f x : zapp fs xs
+  // zapp = [ ]
+
   def zapp[A,B](fs: LazyList[A => B])(as: LazyList[A]): LazyList[B] = {
     val zipped = fs.zip(as)
     zipped.map {
       case (f, a) => f(a)
     }
   }
+
+  // Now we can write transpose like this
+
+  // transpose :: [[a ]] → [[a ]]
+  // transpose [ ] = repeat [ ]
+  // transpose (xs : xss) = repeat (:) ‘zapp‘ xs ‘zapp‘ transpose xss
+
+  // That last line can be written as follows to make the Scala version more
+  // intuitive
+  // zapp (zapp (rep (:)) xs) (zappTranspose xss)
+
+  def transpose2[A](matrix: LazyList[LazyList[A]]): LazyList[LazyList[A]] = {
+      matrix match {
+        case LazyList() => repeat(LazyList.empty)
+        case xs #:: xss =>
+          val fs = repeat(
+            (a: A) =>
+              (as: LazyList[A]) =>
+                a +: as)
+
+          val what = zapp(fs)(xs)
+          val whatNow = zapp(what)(transpose2(xss))
+          whatNow
+      }
+    }
 
   def printIO(out: String): IO[Unit] = {
     for (
@@ -188,7 +218,7 @@ object Applicatives {
         println()
       }
 
-    val transposed = transpose(matrix)
+    val transposed = transpose2(matrix)
     transposed.foreach {
       l =>
         l.foreach{
