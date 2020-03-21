@@ -1,7 +1,5 @@
 package org.justinhj
 
-import cats.CommutativeApplicative
-
 // Working through some ideas from the paper Applicative programming with effects
 // by CONOR MCBRIDE, University of Nottingham and
 // ROSS PATERSON, City University, London
@@ -9,16 +7,14 @@ import cats.CommutativeApplicative
 
 object Applicatives {
 
-  // import cats._
+  import cats._
   import cats.effect.ContextShift
-  import cats.Applicative
-  // import cats.syntax.parallel._
+  import cats.CommutativeApplicative
   import cats.effect.IO
   import cats.effect.IO.Par
   import cats.implicits._
   import scala.concurrent.ExecutionContext
   import scala.concurrent.duration._
-//  import cats.data.NonEmptyLazyList
 
   // Some things needed by Cats Effect
   implicit val timer = IO.timer(ExecutionContext.global)
@@ -161,10 +157,7 @@ object Applicatives {
             (a: A) =>
               (as: LazyList[A]) =>
                 a +: as)
-
-          val what = zapp(fs)(xs)
-          val whatNow = zapp(what)(transpose2(xss))
-          whatNow
+          zapp(zapp(fs)(xs))(transpose2(xss))
       }
     }
 
