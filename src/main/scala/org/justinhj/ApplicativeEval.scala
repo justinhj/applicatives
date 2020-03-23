@@ -2,10 +2,8 @@ package org.justinhj
 
 object ApplicativeEval {
 
-  import cats.implicits._
   import cats._
   import cats.data.Reader
-  import cats.syntax._
 
   // Evaluating expressions
   // Here's a simple expression evaluator
@@ -37,46 +35,38 @@ object ApplicativeEval {
     }
   }
 
-  // We can eliminate the clutter of the explicitly threaded environment with a little
-  // help from some very old friends (in the paper K and S, pure and ap respectively)
+  // "We can eliminate the clutter of the explicitly threaded environment with a little
+  // help from some very old friends" (in the paper K and S are pure and ap respectively)
 
   // eval :: Exp v → Env v → Int
   // eval (Var x ) = fetch x
   // eval (Val i) = pure i
   // eval (Add p q) = ap(K (+), eval p).ap(eval q)
 
-  def fetchR(key: String) = Reader[Map[String,Int], Int] {
-   env =>
-    env.getOrElse(key, 0)
-  }
-  def pureR(value: Int) = Reader[Map[String,Int], Int] {
-   env =>
-    value
-  }
-  def eval2(exp: Exp): Reader[Map[String,Int], Int] = {
+  def fetchR(key: String) = Reader[Map[String,Int], Int](env => env.getOrElse(key, 0))
+  def pureR(value: Int) = Reader[Map[String,Int], Int](env => value)
+
+  def evalR(exp: Exp): Reader[Map[String,Int], Int] = {
     exp match {
       case Val(value) => pureR(value)
       case Var(key) => fetchR(key)
       case Add(left, right) =>
         val f = Reader((env:Map[String,Int]) =>
           (a:Int) => (b:Int) => a + b)
-
-        val f1 = eval2(left).ap(f)
-
-        val f2 = eval2(right).ap(f1)
-            // .ap(eval2(left))
-            // .ap(eval2(right))
-
-        f2
-
+        val leftEval = evalR(left).ap(f)
+        evalR(right).ap(leftEval)
     }
   }
 
+  // Aside: You can see that the arity of the function in the List here determines
+  // how many lists you can apply the function to. The first ap curries the application
+  // of the function and the second completes it. A third would be an error.
 
-  val f = Reader((env:Map[String,Int]) => (a:Int) => (b:Int) => a + b)
-  //val f2 = Reader((env:Int) => (b:Int) => b)
+  // @ List((a:Int) => (b:Int) => a + b, (a:Int) => (b:Int) => a - b).ap(List(1,2,3)).ap(List(4,5,6))
+  // res15: List[Int] = List(5, 6, 7, 6, 7, 8, 7, 8, 9, -3, -4, -5, -2, -3, -4, -1, -2, -3)
 
-  val fap = pureR(10).ap(f)
+  // @ Option((a:Int) => (b:Int) => a + b).ap(Some(1)).ap(Some(10))
+  // res18: Option[Int] = Some(11)
 
   def main(args: Array[String]): Unit = {
 
