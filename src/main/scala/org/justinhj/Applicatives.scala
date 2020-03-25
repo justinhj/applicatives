@@ -20,7 +20,7 @@ object Applicatives {
   implicit val timer = IO.timer(ExecutionContext.global)
   implicit val cs: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
 
-  // The paper begins noting that often we want to "One often wants to execute a sequence of commands and
+  // The paper begins noting that "One often wants to execute a sequence of commands and
   // collect the sequence of their responses"
 
   // sequence :: [IO a ] → IO [a ]
@@ -42,14 +42,14 @@ object Applicatives {
     }
   }
 
+  // We could avoid the need for names to wire these values through to their
+  // point of usage if we had a kind of ‘effectful application’.
+
   // ap is mentioned which you can find in the Haskell Control library
   // https://hackage.haskell.org/package/base-4.12.0.0/docs/Control-Monad.html
   // ap :: Monad m => m (a -> b) -> m a -> m b
 
-  // We could avoid the need for names to wire these values through to their
-  // point of usage if we had a kind of ‘effectful application’.
-
-  // which every Monad must provide, lifts pure values to the effectful world,
+  // pure, which every Monad must provide, lifts pure values to the effectful world,
   // whilst ap provides ‘application’ within it
 
   // Except for the noise of the returns and aps, this definition is in a fairly standard
