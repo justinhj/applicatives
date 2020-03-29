@@ -84,7 +84,7 @@ object Applicatives {
       case Nil =>
         Par(IO.pure(List()))
       case c :: cs =>
-        Par(IO((a: A) => (listA: List[A]) => a +: listA))
+        Par(IO.pure((a: A) => (listA: List[A]) => a +: listA))
           .ap(c)
           .ap(parApplicativeSequence(cs))
     }
@@ -163,7 +163,7 @@ object Applicatives {
 
   def printIO(out: String): IO[Unit] = {
     for (
-      _ <- IO.sleep(500 milliseconds);
+      _ <- IO.sleep(1 second);
       _ <- IO(println(out))
     ) yield ()
   }
@@ -171,9 +171,9 @@ object Applicatives {
   def main(args: Array[String]): Unit = {
 
     val ios = List(
-      printIO("Why"),
-      printIO("Hello"),
-      printIO("Mother Seconds"))
+      printIO("Why,"),
+      printIO("hello"),
+      printIO("there!"))
 
     println("list created")
     // val prog = sequence(ios)

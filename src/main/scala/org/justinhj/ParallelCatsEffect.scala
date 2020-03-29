@@ -6,7 +6,6 @@ object ParallelCatsEffect {
   import cats.effect.{ContextShift, Timer, IO}
   import scala.concurrent.ExecutionContext
 
-  // Needed for IO.start to do a logical thread fork
   implicit val cs: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
   implicit val timer: Timer[IO] = IO.timer(ExecutionContext.global)
 
