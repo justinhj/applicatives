@@ -33,8 +33,21 @@ object MyApp extends App {
           f(a)
       }
     }
-    override def map2[A, B, C](fa: zio.ZIO[Z,E,A], fb: zio.ZIO[Z,E,B])(f: (A, B) => C): zio.ZIO[Z,E,C] = {
-      fa.zipPar(fb).map{case (a,b) => f(a,b)}
+    override def map2[A, B, C](fa: zio.ZIO[Z,E,A], fb: zio.ZIO[Z,E,B])(f: (A, B) => C):
+      zio.ZIO[Z,E,C] = {
+        fa.zipPar(fb).map{case (a,b) => f(a,b)}
+    }
+  }
+
+  def monadicSequence[Z,E,A](ios: List[ZIO[Z, E, A]]): ZIO[Z, E, List[A]] = {
+    ios match {
+      case Nil =>
+        zioApplicative.pure(List.empty[A])
+      case c :: cs =>
+        for (
+          x <- c;
+          xs <- monadicSequence(cs)
+        ) yield (x +: xs)
     }
   }
 
@@ -43,25 +56,22 @@ object MyApp extends App {
       case Nil =>
         ZIO.succeed(List.empty[A])
       case c :: cs =>
-        val w1: ZIO[Z,E, A => (List[A] => List[A])] =
+        val ff: ZIO[Z,E, A => (List[A] => List[A])] =
           zioApplicative.pure(((a: A) => (listA: List[A]) => a +: listA))
-        val w2 = w1.ap(c)
-        val w3 = w2.ap(applicativeSequence(cs))
-        w3
+        val p1 = ff.ap(c)
+        p1.ap(applicativeSequence(cs))
     }
   }
 
-  val myAppLogicParallel: ZIO[Console with Clock,String, List[Unit]] = {
-    val ios = List(
+  val ios1 = List(
       sayHelloMaybe(10),
       sayHelloMaybe(4))
 
-    applicativeSequence(ios)
+  val myAppLogicParallel = {
+    applicativeSequence(ios1)
   }
 
-  val myAppLogicSequence =
-    for {
-      _ <- sayHelloMaybe(10);
-      _ <- sayHelloMaybe(4)
-    } yield ()
+  val myAppLogicSequence = {
+    monadicSequence(ios1)
+  }
 }
