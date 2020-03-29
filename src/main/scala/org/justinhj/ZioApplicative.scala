@@ -9,20 +9,21 @@ import cats.implicits._
 
 object MyApp extends App {
 
-  def run(args: List[String]) =
-    myAppLogicParallel.fold(_ => 1, _ => 0)
+  def run(args: List[String]) = {
+    (for (
+      _ <- putStrLn("Applicative version\n");
+      _ <- myAppLogicParallel;
+      _ <- putStrLn("Monadic version\n");
+      _ <- myAppLogicSequence
+    ) yield ()).fold(_ => 1, _ => 0)
+  }
 
   // Here's a ZIO effect that will wait the specified number of seconds then
-  // say hello, but if you give it an odd number it will throw an error. This
-  // will let us demonstrate the applicative sequence
-  def sayHelloMaybe(s: Int): ZIO[Console with Clock,String,Unit] = {
-    if(s % 2 == 1)
-      ZIO.fail(s"Got an odd number! ($s)")
-    else
-      putStrLn(s"Preparing to say hello in $s seconds").flatMap {
-        _ =>
-          putStrLn(s"Hello after ${s}").delay(s.seconds)
-        }
+  // say the number of seconds
+  def delayedPrintNumber(s: Int): ZIO[Console with Clock,String,Int] = {
+    putStrLn(s"Preparing to say number in $s seconds") *>
+    putStrLn(s"$s").delay(s.seconds) *>
+    ZIO.succeed(s)
   }
 
   implicit def zioApplicative[Z,E] = new Applicative[ZIO[Z,E,?]] {
@@ -63,9 +64,7 @@ object MyApp extends App {
     }
   }
 
-  val ios1 = List(
-      sayHelloMaybe(10),
-      sayHelloMaybe(4))
+  val ios1 = List(6,5,2,1,3,8,4,7).map(delayedPrintNumber)
 
   val myAppLogicParallel = {
     applicativeSequence(ios1)
