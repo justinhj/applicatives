@@ -5,7 +5,7 @@ package org.justinhj
 // ROSS PATERSON, City University, London
 // https://www.staff.city.ac.uk/~ross/papers/Applicative.pdf
 
-object Applicatives {
+object SequencingCommands {
 
   import cats._
   import cats.effect.ContextShift
@@ -90,77 +90,6 @@ object Applicatives {
     }
   }
 
-  // Now we get into some applications of applicative. First one is
-  // matrix tranpose
-
-  // EG:
-  // List((1,2,3),(4,5,6),(7,8,9))
-
-  // You can do this in applicative style, and it uses Haskell's zipWith
-  // zipWith :: (a -> b -> c) -> [a] -> [b] -> [c]
-
-  // In Scala zipWith[A,B,C](f: (A,B) => C, fa: List[A], fb: List[B]): List[C]
-
-  // transpose :: [[a ]] → [[a ]]
-  // transpose [ ] = repeat [ ]
-  // transpose (xs : xss) = zipWith (:) xs (transpose xss)
-
-  // There is no zipWith in Scala, and we need a lazy list so we need to implement
-  // zipWith for LazyList
-
-  def zipWith[A,B,C](as: LazyList[A], bs: LazyList[B])(f: (A,B) => C): LazyList[C] = {
-    as.zip(bs).map{case (a,b) => f(a,b)}
-  }
-
-  def repeat[A](a: A): LazyList[A] = a #:: repeat(a)
-
-  def transpose[A](matrix: LazyList[LazyList[A]]): LazyList[LazyList[A]] = {
-    matrix match {
-      case LazyList() => repeat(LazyList.empty)
-      case xs #:: xss =>
-        zipWith(xs,transpose(xss)) {
-          case (a, as) =>
-            a +: as
-        }
-    }
-  }
-
-  // Given repeat and zapp (see below), we can make a generalized version of the
-  // binary zipWith
-
-  // zapp :: [a → b ] → [a ] → [b ]
-  // zapp (f : fs) (x : xs) = f x : zapp fs xs
-  // zapp = [ ]
-
-  def zapp[A,B](fs: LazyList[A => B])(as: LazyList[A]): LazyList[B] = {
-    val zipped = fs.zip(as)
-    zipped.map {
-      case (f, a) => f(a)
-    }
-  }
-
-  // Now we can write transpose like this
-
-  // transpose :: [[a ]] → [[a ]]
-  // transpose [ ] = repeat [ ]
-  // transpose (xs : xss) = repeat (:) ‘zapp‘ xs ‘zapp‘ transpose xss
-
-  // That last line can be written as follows to make the Scala version more
-  // intuitive
-  // zapp (zapp (rep (:)) xs) (zappTranspose xss)
-
-  def transpose2[A](matrix: LazyList[LazyList[A]]): LazyList[LazyList[A]] = {
-      matrix match {
-        case LazyList() => repeat(LazyList.empty)
-        case xs #:: xss =>
-          val fs = repeat(
-            (a: A) =>
-              (as: LazyList[A]) =>
-                a +: as)
-          zapp(zapp(fs)(xs))(transpose2(xss))
-      }
-    }
-
   def printIO(out: String): IO[Unit] = {
     for (
       _ <- IO.sleep(1 second);
@@ -199,27 +128,5 @@ object Applicatives {
 
     println("fin")
 
-    // transpose
-
-    val matrix = LazyList(LazyList(1,2,3,4,5),LazyList(6,7,8,9,10),LazyList(11,12,13,14,15))
-    matrix.foreach {
-      l =>
-        l.foreach{
-          l2 =>
-            print(s"$l2 ")
-        }
-        println()
-      }
-
-    val transposed = transpose2(matrix)
-    transposed.foreach {
-      l =>
-        l.foreach{
-          l2 =>
-            print(s"$l2 ")
-        }
-        println()
-      }
-    }
-
+  }
 }
