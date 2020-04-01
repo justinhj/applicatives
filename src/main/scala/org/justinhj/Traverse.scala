@@ -3,7 +3,7 @@ package org.justinhj
 object Traverse {
 
   import cats.Applicative
-  import cats.Traverse
+  import cats.data.{Validated, NonEmptyList}
   import cats.implicits._
 
   // applicative distributor for lists
@@ -63,33 +63,40 @@ object Traverse {
   def main(args: Array[String]): Unit = {
 
     // dist a list of options
-    println(dist(List(Option(10), Option(10), Option(3), Option(4))))
-    // Some(List(10, 10, 3, 4))
+    println("dist option success: " + dist(List(Option(10), Option(10), Option(3), Option(4))))
+    // dist option success: Some(List(10, 10, 3, 4))
 
     // Note that we have short circuiting
-    println(dist(List(None, Option(10), Option(3), Option(4))))
-    // None
+    println("dist option failure: " + dist(List(None, Option(10), Option(3), Option(4))))
+    // dist option failure: None
+
+    // Validated can accumulate errors instead of failing fast...
+    val someValidateds: List[Validated[NonEmptyList[String],Int]] =
+      (List("Some error".invalidNel, 10.valid, "Another error".invalidNel, 4.valid))
+
+    // Try the same with Validated that has an Applicative instance
+    println("Validated failure: " + dist(someValidateds))
+    // Validated failure example: Invalid(NonEmptyList(Had some error, Another error))
 
     // Flakymap ...
-    println(flakyMap((n: Int) => Option(n * 2), List(1,2,3)))
-    // Some(List(2, 4, 6))
+    println("Flakymap success: " + flakyMap((n: Int) => Option(n * 2), List(1,2,3)))
+    // Flakymap success: Some(List(2, 4, 6))
 
-    println(flakyMap((n: Int) => if(n%2==1) Some(n) else None, List(1,2,3)))
-    // None
+    println("Flakymap failure: " + flakyMap((n: Int) => if(n%2==1) Some(n) else None, List(1,2,3)))
+    // Flakymap failure: None
 
-    // Traverse combines dist and map to reduce that double traversal...
-    println(listTraverse((n: Int) => Option(n * 2), List(1,2,3)))
-
+    // Traverse combines dist and map to remove the double traversal of flakyMap
+    println("listTraverse example: " + listTraverse((n: Int) => Option(n * 2), List(1,2,3)))
     // Output is the same as flakyMap
 
     // Sequence
-    println(sequence(List(Option(10), Option(10), Option(3), Option(4))))
+    println("sequence: " + sequence(List(Option(10), Option(10), Option(3), Option(4))))
+    // sequence: Some(List(10, 10, 3, 4))
 
     // Tree traversal
     val tree1 = Node(Leaf, 10, Node(Leaf, 5, Node(Leaf, 10, Leaf)))
 
-    println(treeTraverse((n: Int) => Option(n + 1), tree1))
-
-
+    println("treeTraverse: " + treeTraverse((n: Int) => Option(n + 1), tree1))
+    // treeTraverse: Some(Node(Leaf,11,Node(Leaf,6,Node(Leaf,11,Leaf))))
   }
 }
