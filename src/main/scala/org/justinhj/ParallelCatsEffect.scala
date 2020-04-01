@@ -9,12 +9,14 @@ object ParallelCatsEffect {
   implicit val cs: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
   implicit val timer: Timer[IO] = IO.timer(ExecutionContext.global)
 
-  val anIO = IO(1)
-
-  val hello = IO((a: Int) => a + 1).ap(anIO).flatMap(n => IO(println(s"hello $n")))
+  // Here we explicitly use the IO's applicative
+  val sampleIO = IO((a: Int) => a + 1)
+                    .ap(IO(1))
+                    .flatMap(n => IO(println(s"hello $n")))
 
   val aLotOfIOs =
-    NonEmptyList.of(hello, hello)
+    NonEmptyList.of(sampleIO, sampleIO)
+
 
   val ioOfList = aLotOfIOs.parSequence
 

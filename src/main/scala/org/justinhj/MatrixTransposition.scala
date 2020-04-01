@@ -20,8 +20,7 @@ object MatrixTransposition {
   // zipWith for LazyList
 
   def zipWith[A, B, C](as: LazyList[A], bs: LazyList[B])(
-      f: (A, B) => C
-  ): LazyList[C] = {
+      f: (A, B) => C): LazyList[C] = {
     as.zip(bs).map { case (a, b) => f(a, b) }
   }
 
