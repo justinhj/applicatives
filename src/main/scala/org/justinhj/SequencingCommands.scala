@@ -78,7 +78,7 @@ object SequencingCommands {
   // To select the applicative instance we need to use IO.Par.
 
   def parApplicativeSequence[A](ios: List[IO.Par[A]])
-    (implicit applicative : CommutativeApplicative[IO.Par]):
+    (implicit applicative : Applicative[IO.Par]):
       IO.Par[List[A]] = {
     ios match {
       case Nil =>
