@@ -65,6 +65,14 @@ object Const {
     // without losing the value of X...
     override def map[A, B](fa: MyConst[X,A])(f: A => B): MyConst[X,B] = MyConst(fa.unConst)
 
+    // This cannot be implemented
+    // def flatMap[A,B](fa: MyConst[X,A])(f: A => MyConst[X,B]): MyConst[X,B] = {
+    //   val x = fa.unConst
+    //   val a = ???
+    //   // f(a)
+    //   ???
+    // }
+
     override def pure[A](x: A): MyConst[X,A] = MyConst(Monoid[X].empty)
 
     override def ap[A, B](ff: MyConst[X,A => B])(fa: MyConst[X,A]): MyConst[X,B] =

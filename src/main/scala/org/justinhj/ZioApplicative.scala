@@ -28,12 +28,14 @@ object MyApp extends App {
 
   implicit def zioApplicative[Z,E] = new Applicative[ZIO[Z,E,?]] {
     def pure[A](x: A) = ZIO.succeed(x)
-    def ap[A, B](ff: ZIO[Z,E,A => B])(fa: ZIO[Z,E,A]) = {
+
+    override def ap[A, B](ff: ZIO[Z,E,A => B])(fa: ZIO[Z,E,A]) = {
       map2(ff, fa){
         (f,a) =>
           f(a)
       }
     }
+
     override def map2[A, B, C](fa: zio.ZIO[Z,E,A], fb: zio.ZIO[Z,E,B])(f: (A, B) => C):
       zio.ZIO[Z,E,C] = {
         fa.zipPar(fb).map{case (a,b) => f(a,b)}
