@@ -9,7 +9,6 @@ object SequencingCommands {
 
   import cats._
   import cats.effect.ContextShift
-  import cats.CommutativeApplicative
   import cats.effect.IO
   import cats.effect.IO.Par
   import cats.implicits._
