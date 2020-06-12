@@ -130,7 +130,7 @@ object Const {
 
     // Use Tuple2 instead of MyConst
     println(
-      Traverse[List].traverse(List(1,2,3,4,5))(a => Tuple2(a, true))._1
+      Traverse[List].traverse(List(1,2,3,4,5,6,7))(a => Tuple2(a, true))._1
     )
     // 15
 

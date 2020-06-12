@@ -2,6 +2,9 @@ package org.justinhj
 
 object MatrixTransposition {
 
+  import cats.Applicative
+  import cats.Traverse
+
   // Second application of applicatives is transpose
 
   // EG:
@@ -70,6 +73,18 @@ object MatrixTransposition {
     }
   }
 
+  implicit val implicitLazyListApplicative = new Applicative[LazyList] {
+    def pure[A](a: A): LazyList[A] = repeat(a)
+
+    def ap[A, B](ff: LazyList[A => B])(fa: LazyList[A]): LazyList[B] = {
+      zapp(ff)(fa)
+    }
+  }
+
+  def transposeApp2[A](matrix: LazyList[LazyList[A]]): LazyList[LazyList[A]] = {
+    Traverse[LazyList].sequence(matrix)
+  }
+
   def main(args: Array[String]): Unit = {
 
     val matrix = LazyList(
@@ -86,7 +101,7 @@ object MatrixTransposition {
     }
 
     val transposed = transpose(matrix)
-    val transposedApp = transposeApp(matrix)
+    val transposedApp = transposeApp2(matrix)
 
     transposed.foreach { l =>
       l.foreach { l2 =>

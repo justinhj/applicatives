@@ -1,5 +1,7 @@
 package org.justinhj
 
+import cats.kernel.Semigroup
+
 object Traverse {
 
   import cats.Applicative
@@ -19,6 +21,16 @@ object Traverse {
         val w1 = app.pure((a: A) => (listA: List[A]) => a +: listA)
         val w2 = w1.ap(c)
         w2.ap(dist(cs))
+    }
+  }
+
+  // dist with map2 instead of pure
+  def dist2[A, F[_]](fs: List[F[A]])(implicit app: Applicative[F]): F[List[A]] = {
+    fs match {
+      case Nil =>
+        app.pure(List.empty[A])
+      case c :: cs =>
+        app.map2(c, dist2(cs))(_ +: _)
     }
   }
 
@@ -108,6 +120,9 @@ object Traverse {
     println("dist option success: " + dist(List(Option(10), Option(10), Option(3), Option(4))))
     // dist option success: Some(List(10, 10, 3, 4))
 
+    println("dist2 option success: " + dist(List(Option(10), Option(10), Option(3), Option(4))))
+    // dist2 option success: Some(List(10, 10, 3, 4))
+
     // Note that we have short circuiting
     println("dist option failure: " + dist(List(None, Option(10), Option(3), Option(4))))
     // dist option failure: None
@@ -140,13 +155,14 @@ object Traverse {
     // listTraverse Tuple2 example: (12,List(1, 2, 3))
 
     // Tree traversal
-    val tree1 = Node(Leaf, 10, Node(Leaf, 5, Node(Leaf, 10, Leaf)))
+    val tree1 = Node(Leaf, 10, Node(Leaf, 12, Node(Leaf, 15, Leaf)))
 
     println("treeTraverse: " + treeTraverse((n: Int) => Option(n + 1), tree1))
     // treeTraverse: Some(Node(Leaf,11,Node(Leaf,6,Node(Leaf,11,Leaf))))
 
     // Flatten a tree with Const
-    println("treeTraverse const: " + treeTraverse((n: Int) => Const[Int, Boolean](n), tree1))
+    println("treeTraverse const: " + treeTraverse((n: Int) => Const[Int, Float](n), tree1).getConst)
+    // treeTraverse const: Const(25)
 
     // Accumulate
     println("accumulate: " + accumulate((s: String) => s.size)(List("ten", "twenty", "thirty")))

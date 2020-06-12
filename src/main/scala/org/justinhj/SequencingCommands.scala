@@ -72,6 +72,29 @@ object SequencingCommands {
     }
   }
 
+  def applicativeSequence2[A](ios: List[IO[A]]): IO[List[A]] = {
+    ios match {
+      case Nil =>
+        IO.pure(List.empty[A])
+      case c :: cs =>
+        IO.pure((a: A) => (list: List[A]) => a +: list)
+          .ap(c)
+          .ap(applicativeSequence2(cs))
+    }
+  }
+
+  def genericSequence[F[_] : Applicative, A](ios: List[F[A]]): F[List[A]] = {
+    val App = implicitly[Applicative[F]]
+    ios match {
+      case Nil =>
+        App.pure(List.empty[A])
+      case c :: cs =>
+        App.pure((a: A) => (list: List[A]) => a +: list)
+          .ap(c)
+          .ap(genericSequence(cs))
+    }
+  }
+
   // Note that the default instance for IO is a monad, and ap is implemented with flatMap
   // to get actual parallelism we need the applicative instance of IO.
   // To select the applicative instance we need to use IO.Par.
@@ -96,6 +119,55 @@ object SequencingCommands {
     ) yield ()
   }
 
+  // Replace IO with Applicative
+  // Replace recursion with foldLeft
+  def applicativeSequence3[F[_]:Applicative,A](ios: List[F[A]]): F[List[A]] = {
+    val app = implicitly[Applicative[F]]
+    ios.foldLeft(app.pure(List.empty[A])) {
+      case (acc, c) =>
+        app.pure((a: A) => (list: List[A]) => a +: list)
+          .ap(c)
+          .ap(acc)
+    }
+  }
+
+  // Implement to traverse
+  //   def traverse[G[_]: Applicative, A, B](fa: F[A])(f: A => G[B]): G[F[B]]
+
+  def applicativeTraverse1[G[_]:Applicative,A,B](fa: List[A])(f: A => G[B]): G[List[B]] = {
+    val app = implicitly[Applicative[G]]
+    fa.foldLeft(app.pure(List.empty[B])) {
+      case (acc, c) =>
+        app.pure((b: B) => (list: List[B]) => b +: list)
+          .ap(f(c))
+          .ap(acc)
+    }.map(_.reverse)
+  }
+
+  // Note that we can't replace list with a generic type, the :+ and reverse part is
+  // not available to generic types, but we can fold if we have a monoid in G
+  // def applicativeTraverse2[F[_],G[_],A,B](fa: F[A])(f: A => G[B])
+  //   (implicit foldable: Foldable[F], applicative: Applicative[G], monoid: Monoid[G[_]]): G[F[B]] = {
+
+  //   fa.foldLeft(applicative.pure(monoid.empty[B])) {
+  //     case (acc, c) =>
+  //       app.pure((b: B) => (bs: G[B]) => ???)
+  //         .ap(f(c))
+  //         .ap(acc)
+  //   }
+  // }
+
+  // Replace list with Foldable
+  // def applicativeSequence4[F[_]:Applicative, G[_]: Foldable,A](ios: G[F[A]]): F[G[A]] = {
+  //   val app = implicitly[Applicative[F]]
+  //   ios.foldLeft(app.pure(G.empty[A])) {
+  //     case (acc, c) =>
+  //       app.pure((a: A) => (gs: G[A]) => a +: gs)
+  //         .ap(c)
+  //         .ap(acc)
+  //   }
+  // }
+
   def main(args: Array[String]): Unit = {
 
     val ios = List(
@@ -110,22 +182,29 @@ object SequencingCommands {
     //println("prog created")
     //prog.unsafeRunSync()
 
-    println("Let's apply ourselves ;)")
+    // println("Let's apply ourselves 3 ;)")
 
-    // val progA = applicativeSequence(ios)
+    // val progA = applicativeSequence3(ios)
     // progA.unsafeRunSync()
+
+    println("Let's traverse ;)")
+
+    val progT = applicativeTraverse1(List(1,2,3))(a => Option(a))
+    println(s"traversed option $progT")
 
     // // Using Cats sequence
     // val progCList = NonEmptyList.fromListUnsafe(ios)
     // val progC = progCList.parSequence
     // progC.unsafeRunSync()
 
-    // Using parallel sequence
-    val parIos = ios.map(Par.apply)
-    val progB = Par.unwrap(parApplicativeSequence(parIos))
-    progB.unsafeRunSync()
+    // println("Here we go again!")
 
-    println("fin")
+    // // Using parallel sequence
+    // val parIos = ios.map(Par.apply)
+    // val progB = parApplicativeSequence(parIos)
+    // Par.unwrap(progB).unsafeRunSync()
+
+    // println("fin")
 
   }
 }

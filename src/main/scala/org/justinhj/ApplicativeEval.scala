@@ -3,7 +3,10 @@ package org.justinhj
 object ApplicativeEval {
 
   import cats._
+  //import cats.instances.AllInstances
+  import cats.implicits._
   import cats.data.Reader
+  import cats.Traverse
 
   // Evaluating expressions
   // Here's a simple expression evaluator
@@ -23,15 +26,13 @@ object ApplicativeEval {
 
   case class Env[K](kv: Map[K,Int])
 
-  def fetch(key: String)(env: Env[String]) : Int =
-    env.kv.getOrElse(key, 0)
+  def fetch(key: String)(env: Env[String]) = env.kv.getOrElse(key, 0)
 
   def eval(exp: Exp, env: Env[String]) : Int = {
     exp match {
       case Val(value) => value
       case Var(key) => fetch(key)(env)
-      case Add(left, right) =>
-        eval(left, env) + eval(right, env)
+      case Add(left, right) => eval(left, env) + eval(right, env)
     }
   }
 
@@ -43,20 +44,92 @@ object ApplicativeEval {
   // eval (Val i) = pure i
   // eval (Add p q) = ap(K (+), eval p).ap(eval q)
 
+  type EnvReader[A] = Reader[Map[String,Int], A]
   def fetchR(key: String) = Reader[Map[String,Int], Int](env => env.getOrElse(key, 0))
-  def pureR(value: Int) = Reader[Map[String,Int], Int](env => value)
 
   def evalR(exp: Exp): Reader[Map[String,Int], Int] = {
     exp match {
-      case Val(value) => pureR(value)
+      case Val(value) => Applicative[EnvReader].pure(value)
       case Var(key) => fetchR(key)
       case Add(left, right) =>
-        val f = Reader((env:Map[String,Int]) =>
-          (a:Int) => (b:Int) => a + b)
-        val leftEval = evalR(left).ap(f)
-        evalR(right).ap(leftEval)
+        val f = Applicative[EnvReader].pure((a:Int) => (b:Int) => a + b)
+        val l = evalR(left)
+        val r = evalR(right)
+        f.ap(l).ap(r)
     }
   }
+
+  // Tree data type
+  sealed trait Exp2[+A]
+  case class Val2[A](value: A) extends Exp2[A]
+  case class Add2[A](left: Exp2[A], right: Exp2[A]) extends Exp2[A]
+  case class Var2[A](key: String) extends Exp2[A]
+
+  implicit val foldableExp2 = new Foldable[Exp2] {
+    def foldLeft[A, B](fa: Exp2[A], b: B)(f: (B, A) => B): B = {
+      // fa match {
+      //   case Val2(value) => f(b, value)
+      //   case Var2(key) => fetch(key)(env)
+      // }
+      ???
+    }
+
+    def foldRight[A, B](fa: Exp2[A], lb: cats.Eval[B])(f: (A, cats.Eval[B]) => cats.Eval[B]): cats.Eval[B] = ???
+  }
+
+
+  // def treeTraverse[A, B, F[_]](f: A => F[B], fs: Tree[A])
+  //   (implicit app: Applicative[F]): F[Tree[B]] = {
+  //   fs match {
+  //     case Leaf =>
+  //       app.pure(Leaf)
+  //     case Node(left, a, right) =>
+  //       val w1 = app.pure((l: Tree[B]) => (v: B) => (r: Tree[B]) => Node(l,v,r))
+  //       val w2 = w1.ap(treeTraverse(f,left))
+  //       val w3 = w2.ap(f(a))
+  //       w3.ap(treeTraverse(f,right))
+  //   }
+  // }
+
+  // Generic sequence (replaced IO with Applicative interface)
+
+   def applicativeSequence2[F[_]:Applicative,A](ios: List[F[A]]): F[List[A]] = {
+    val app = implicitly[Applicative[F]]
+    ios match {
+      case Nil =>
+        app.pure(List.empty[A])
+      case c :: cs =>
+        app.pure((a: A) => (list: List[A]) => a +: list)
+          .ap(c)
+          .ap(applicativeSequence2(cs))
+    }
+  }
+
+
+   def applicativeSequence3[F[_]:Applicative,A](ios: List[F[A]]): F[List[A]] = {
+    val app = implicitly[Applicative[F]]
+    ios.foldLeft(app.pure(List.empty[A])) {
+      case (acc, c) =>
+        app.pure((a: A) => (list: List[A]) => a +: list)
+          .ap(c)
+          .ap(acc)
+    }
+  }
+
+  // type IntReader[A] = Reader[Int,A]
+  // def temp : IntReader[Int] = for {
+  //   ten <- Applicative[IntReader].pure(10).ap(Applicative[IntReader].pure((a: Int) => a + 1))
+  //   r <- Reader((a: Int) => ten + 1)
+  // //   .ap(Applicative[IntReader].pure((a: Int) => a + 1)).flatMap {
+  // // e =>
+  // //   Reader((e:Int) =>  e + 1) }.run(100)
+  // } yield r
+
+  // Not sure why ap is reversed for Reader but this has to be written backwards
+  // https://github.com/typelevel/cats/commit/d4f81766b8386cd4742df753054d19984cf2bd8d
+  // changed order of parameter lists for Apply.ap
+  // Clearer if you use map2
+  // Applicative[EnvReader].map2(l,r){(a,b) => a + b}
 
   // Aside: You can see that the arity of the function in the List here determines
   // how many lists you can apply the function to. The first ap curries the application
@@ -70,10 +143,15 @@ object ApplicativeEval {
 
   def main(args: Array[String]): Unit = {
 
-    val env1 = Env(Map("x" -> 3, "y" -> 10))
-    val exp1 = Add(Val(10), Add(Var("x"), Var("y")))
+    val envMap = Map("x" -> 7, "y" -> 6)
 
-    println(s"Eval : ${eval(exp1, env1)}")
+    val exp = Add(Val(10), Add(Var("x"), Var("y")))
+
+    println(s"Eval : ${eval(exp, Env(envMap))}")
+    // Eval : 23
+
+    println(s"EvalR : ${evalR(exp).run(envMap)}")
+    // EvalR : 23
   }
 
 }
