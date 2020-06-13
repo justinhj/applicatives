@@ -59,23 +59,82 @@ object ApplicativeEval {
     }
   }
 
-  // Tree data type
+  // Since exp is not a list we need a Traverse for Env
+
   sealed trait Exp2[+A]
-  case class Val2[A](value: A) extends Exp2[A]
+  case class Val2[A](value: Int) extends Exp2[A]
   case class Add2[A](left: Exp2[A], right: Exp2[A]) extends Exp2[A]
-  case class Var2[A](key: String) extends Exp2[A]
+  case class Var2[A](key: A) extends Exp2[A]
 
-  implicit val foldableExp2 = new Foldable[Exp2] {
-    def foldLeft[A, B](fa: Exp2[A], b: B)(f: (B, A) => B): B = {
-      // fa match {
-      //   case Val2(value) => f(b, value)
-      //   case Var2(key) => fetch(key)(env)
-      // }
-      ???
-    }
+  // eval :: Exp v → Env v → Int
+  // eval (Var x ) = fetch x
+  // eval (Val i) = pure i
+  // eval (Add p q) = pure + (eval p) (eval q)
 
-    def foldRight[A, B](fa: Exp2[A], lb: cats.Eval[B])(f: (A, cats.Eval[B]) => cats.Eval[B]): cats.Eval[B] = ???
+  // In sequence the input is a list of F[A]
+  // the output is a F[List[A]]
+  // the applicative instance is F (the IO)
+
+  // In eval the input is a list of Reader => Int
+
+  type Env2[K] = Map[K,Int]
+
+  def fetchR2[K](name: K)(env: Env2[K]): Int = {
+    env(name)
   }
+
+  type KEnvReader[K] = Reader[Env2[K], Int]
+
+  def evalR2[K](exp: Exp2[K]) : Reader[Env2[K], Int] = {
+    exp match {
+      case Var2(key) => Reader(env => fetchR2(key)(env))
+      case Val2(value) => Reader(env => value)
+      case Add2(left, right) =>
+        val f = Applicative[Reader[Env2[K],?]].pure((a:Int) => (b:Int) => a + b)
+        val l = evalR2(left)
+        val r = evalR2(right)
+        f.ap(l).ap(r)
+    }
+  }
+
+
+  // val traverseExp = new Traverse[Exp2] {
+  //   // Members declared in Foldable
+  //   def foldLeft[A, B](fa: Exp2[A], b: B)(f: (B, A) => B): B = ???
+  //   def foldRight[A, B](fa: Exp2[A], lb: Eval[B])(f: (A, Eval[B]) => Eval[B]): Eval[B] = ???
+
+  //   // Members declared in Traverse
+  //   def traverse[G[_], A, B](fa: Exp2[A])(f: A => G[B])(implicit app: Applicative[G]): G[Exp2[B]] = {
+  //     fa match {
+  //       case Val2(value) => app.pure(value)
+  //       //case Var(key) => fetchR(key)
+  //       case Add(left, right) =>
+  //         val f = Applicative[EnvReader].pure((a:Int) => (b:Int) => a + b)
+  //         val l = evalR(left)
+  //         val r = evalR(right)
+  //         f.ap(l).ap(r)
+  //     }
+  //   }
+  // }
+
+
+  // Tree data type
+  // sealed trait Exp2[+A]
+  // case class Val2[A](value: A) extends Exp2[A]
+  // case class Add2[A](left: Exp2[A], right: Exp2[A]) extends Exp2[A]
+  // case class Var2[A](key: String) extends Exp2[A]
+
+  // implicit val foldableExp2 = new Foldable[Exp2] {
+  //   def foldLeft[A, B](fa: Exp2[A], b: B)(f: (B, A) => B): B = {
+  //     // fa match {
+  //     //   case Val2(value) => f(b, value)
+  //     //   case Var2(key) => fetch(key)(env)
+  //     // }
+  //     ???
+  //   }
+
+  //   def foldRight[A, B](fa: Exp2[A], lb: cats.Eval[B])(f: (A, cats.Eval[B]) => cats.Eval[B]): cats.Eval[B] = ???
+  // }
 
 
   // def treeTraverse[A, B, F[_]](f: A => F[B], fs: Tree[A])
@@ -93,28 +152,28 @@ object ApplicativeEval {
 
   // Generic sequence (replaced IO with Applicative interface)
 
-   def applicativeSequence2[F[_]:Applicative,A](ios: List[F[A]]): F[List[A]] = {
-    val app = implicitly[Applicative[F]]
-    ios match {
-      case Nil =>
-        app.pure(List.empty[A])
-      case c :: cs =>
-        app.pure((a: A) => (list: List[A]) => a +: list)
-          .ap(c)
-          .ap(applicativeSequence2(cs))
-    }
-  }
+  //  def applicativeSequence2[F[_]:Applicative,A](ios: List[F[A]]): F[List[A]] = {
+  //   val app = implicitly[Applicative[F]]
+  //   ios match {
+  //     case Nil =>
+  //       app.pure(List.empty[A])
+  //     case c :: cs =>
+  //       app.pure((a: A) => (list: List[A]) => a +: list)
+  //         .ap(c)
+  //         .ap(applicativeSequence2(cs))
+  //   }
+  // }
 
 
-   def applicativeSequence3[F[_]:Applicative,A](ios: List[F[A]]): F[List[A]] = {
-    val app = implicitly[Applicative[F]]
-    ios.foldLeft(app.pure(List.empty[A])) {
-      case (acc, c) =>
-        app.pure((a: A) => (list: List[A]) => a +: list)
-          .ap(c)
-          .ap(acc)
-    }
-  }
+  //  def applicativeSequence3[F[_]:Applicative,A](ios: List[F[A]]): F[List[A]] = {
+  //   val app = implicitly[Applicative[F]]
+  //   ios.foldLeft(app.pure(List.empty[A])) {
+  //     case (acc, c) =>
+  //       app.pure((a: A) => (list: List[A]) => a +: list)
+  //         .ap(c)
+  //         .ap(acc)
+  //   }
+  // }
 
   // type IntReader[A] = Reader[Int,A]
   // def temp : IntReader[Int] = for {
@@ -126,6 +185,8 @@ object ApplicativeEval {
   // } yield r
 
   // Not sure why ap is reversed for Reader but this has to be written backwards
+  // Update: It's a bug in Cats, I fixed it June 10
+
   // https://github.com/typelevel/cats/commit/d4f81766b8386cd4742df753054d19984cf2bd8d
   // changed order of parameter lists for Apply.ap
   // Clearer if you use map2
@@ -151,6 +212,10 @@ object ApplicativeEval {
     // Eval : 23
 
     println(s"EvalR : ${evalR(exp).run(envMap)}")
+    // EvalR : 23
+
+    val exp2 = Add2(Val2(10), Add2(Var2("x"), Var2("y")))
+    println(s"EvalR2 : ${evalR2(exp2).run(envMap)}")
     // EvalR : 23
   }
 

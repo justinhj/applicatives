@@ -83,13 +83,14 @@ object SequencingCommands {
     }
   }
 
-  def genericSequence[F[_] : Applicative, A](ios: List[F[A]]): F[List[A]] = {
-    val App = implicitly[Applicative[F]]
+  def genericSequence[F[_], A](ios: List[F[A]])
+    (implicit app: Applicative[F])
+    : F[List[A]] = {
     ios match {
       case Nil =>
-        App.pure(List.empty[A])
+        app.pure(List.empty[A])
       case c :: cs =>
-        App.pure((a: A) => (list: List[A]) => a +: list)
+        app.pure((a: A) => (list: List[A]) => a +: list)
           .ap(c)
           .ap(genericSequence(cs))
     }
@@ -174,6 +175,14 @@ object SequencingCommands {
       printIO("Why,"),
       printIO("hello"),
       printIO("there!"))
+
+    def traverseDemo1 = {
+      Par.unwrap(
+       Traverse[List].traverse(ios)(io => Par(io))
+      )
+    }
+
+    println("traverseDemo1: " + traverseDemo1.unsafeRunSync)
 
     println("list created")
     // val prog = sequence(ios)

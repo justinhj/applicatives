@@ -69,7 +69,8 @@ object MatrixTransposition {
       case LazyList() => repeat(LazyList.empty)
       case xs #:: xss =>
         val fs = repeat((a: A) => (as: LazyList[A]) => a +: as)
-        zapp(zapp(fs)(xs))(transposeApp(xss))
+        val zap1 = zapp(fs)(xs)
+        zapp(zap1)(transposeApp(xss))
     }
   }
 
