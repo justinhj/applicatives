@@ -1,11 +1,11 @@
 package org.justinhj
 
-import cats.kernel.Semigroup
+//import cats.kernel.Semigroup
 
 object Traverse {
 
   import cats.Applicative
-  import cats.Traverse
+  import cats.{Traverse => CatsTraverse}
   import cats.Monoid
   import cats.Eval
   import cats.data.Const
@@ -57,35 +57,60 @@ object Traverse {
     listTraverse((fa: F[A]) => fa, fs)
   }
 
+  // Traverse
+
+  trait Traverse[F[_]] {
+    def traverse[G[_]: Applicative, A, B](fa: F[A])(f: A => G[B]): G[F[B]]
+
+    def sequence[G[_]: Applicative, A](fga: F[G[A]]): G[F[A]] =
+     traverse(fga)(ga => ga)
+  }
+
+  implicit val listTraverse = new Traverse[List] {
+     def traverse[G[_]: Applicative, A, B](fs: List[A])(f: A => G[B]): G[List[B]] = {
+        val app = implicitly[Applicative[G]]
+        fs match {
+          case Nil =>
+            app.pure(List.empty[B])
+          case c :: cs =>
+            val w1 = app.pure((b: B) => (listB: List[B]) => b +: listB)
+            val w2 = w1.ap(f(c))
+            w2.ap(traverse(cs)(f))
+        }
+    }
+  }
+
   // Traversal of a tree
 
   sealed trait Tree[+A]
   case object Leaf extends Tree[Nothing]
   case class Node[A](left: Tree[A], a: A, right: Tree[A]) extends Tree[A]
 
-  def treeTraverse[A, B, F[_]](f: A => F[B], fs: Tree[A])
-    (implicit app: Applicative[F]): F[Tree[B]] = {
-    fs match {
-      case Leaf =>
-        app.pure(Leaf)
-      case Node(left, a, right) =>
-        val w1 = app.pure((l: Tree[B]) => (v: B) => (r: Tree[B]) => Node(l,v,r))
-        val w2 = w1.ap(treeTraverse(f,left))
-        val w3 = w2.ap(f(a))
-        w3.ap(treeTraverse(f,right))
-    }
+  implicit val treeTraverse = new Traverse[Tree] {
+    def traverse[G[_]: Applicative, A, B](fa: Tree[A])(f: A => G[B]): G[Tree[B]] = {
+        val app = implicitly[Applicative[G]]
+        fa match {
+          case Leaf =>
+            app.pure(Leaf)
+          case Node(left, a, right) =>
+            val w1 = app.pure((l: Tree[B]) => (v: B) => (r: Tree[B]) => Node(l,v,r))
+            val w2 = w1.ap(traverse(left)(f))
+            val w3 = w2.ap(f(a))
+            w3.ap(traverse(right)(f))
+        }
+      }
   }
 
-  def accumulate[A,F[_]: Traverse, B: Monoid](f: A => B)(fa: F[A]): B = {
-    cats.Traverse[F].traverse(fa)((a: A) => Const.of[B](f(a))).getConst
+  def accumulate[A,F[_]: CatsTraverse, B: Monoid](f: A => B)(fa: F[A]): B = {
+    CatsTraverse[F].traverse(fa)((a: A) => Const.of[B](f(a))).getConst
   }
 
-  def reduce[F[_]: Traverse, A: Monoid](fa: F[A]): A = {
-    cats.Traverse[F].traverse(fa)((a: A) => Const.of[A](a)).getConst
+  def reduce[F[_]: CatsTraverse, A: Monoid](fa: F[A]): A = {
+    CatsTraverse[F].traverse(fa)((a: A) => Const.of[A](a)).getConst
   }
 
   // We need a real Cats Traverse instance for Tree for this one...
-  implicit val catsTreeTraverse = new Traverse[Tree] {
+  implicit val catsTreeTraverse = new CatsTraverse[Tree] {
 
     // Don't really need these to demonstrate treeFlatten, but they can be implemented
     // in terms of traverse...
@@ -99,9 +124,9 @@ object Traverse {
               app.pure(Leaf)
             case Node(left, a, right) =>
               val w1 = app.pure((l: Tree[B]) => (v: B) => (r: Tree[B]) => Node(l,v,r))
-              val w2 = w1.ap(treeTraverse(f,left))
+              val w2 = w1.ap(traverse(left)(f))
               val w3 = w2.ap(f(a))
-              w3.ap(treeTraverse(f,right))
+              w3.ap(traverse(right)(f))
           }
     }
   }
@@ -157,11 +182,11 @@ object Traverse {
     // Tree traversal
     val tree1 = Node(Leaf, 10, Node(Leaf, 12, Node(Leaf, 15, Leaf)))
 
-    println("treeTraverse: " + treeTraverse((n: Int) => Option(n + 1), tree1))
+    println("treeTraverse: " + treeTraverse.traverse(tree1)((n: Int) => Option(n + 1)))
     // treeTraverse: Some(Node(Leaf,11,Node(Leaf,6,Node(Leaf,11,Leaf))))
 
     // Flatten a tree with Const
-    println("treeTraverse const: " + treeTraverse((n: Int) => Const[Int, Float](n), tree1).getConst)
+    println("treeTraverse const: " + treeTraverse.traverse(tree1)((n: Int) => Const[Int, Float](n)).getConst)
     // treeTraverse const: Const(25)
 
     // Accumulate

@@ -8,6 +8,8 @@ package org.justinhj
 object SequencingCommands {
 
   import cats._
+  import cats.data.Const
+  import cats.data.Nested
   import cats.effect.ContextShift
   import cats.effect.IO
   import cats.effect.IO.Par
@@ -169,12 +171,68 @@ object SequencingCommands {
   //   }
   // }
 
+
+  type IOResult[A] = Tuple3[Long, Int, A]
+  type ConstIOStringResult[A] = Const[(Long, Int, String), A]
+
+  def exampleIO(n: Int) : IO[IOResult[String]] = {
+    IO.sleep(n seconds).map(s => (n.toLong, 1, n.toString))
+  }
+
+ // val ioConstApp = Applicative[IO.Par].compose(Applicative[ConstIOStringResult])
+
+  val testios = List(1,2,3)
+
+  //val test = Nested[IO, ConstIOStringResult, String](exampleIO(3).map(r => Const(r)))
+
+  val result = Traverse[List].traverse(testios) {
+    n =>
+      Nested[IO, ConstIOStringResult, String](
+        exampleIO(n).map(r => Const(r))
+      )
+  }
+
+  val result2 = Traverse[List].traverse(testios) {
+    n =>
+      Nested[IO.Par, ConstIOStringResult, String](
+        Par(exampleIO(n)).map(r => Const(r))
+      )
+  }
+
+  val result3 = Traverse[List].traverse(testios) {
+    n =>
+      Nested[IO.Par, ConstIOStringResult, String](
+        Par(exampleIO(n)).map(r => Const(r))
+      )
+  }
+
   def main(args: Array[String]): Unit = {
+
+    val resultRun = Par.unwrap(result2.value).unsafeRunSync()
+    println(s"result: $resultRun")
+
 
     val ios = List(
       printIO("Why,"),
       printIO("hello"),
+            printIO("hello1"),
+
+                  printIO("hello2"),
+
+                        printIO("hello3"),
+
+                              printIO("hello4"),
+
+                                    printIO("hello5"),
+
+                                          printIO("hello"),
+
       printIO("there!"))
+
+    Par(IO((a: Int) => a + 1)).ap(Par(IO{println("hello"); 1}))
+
+
+    Applicative[IO.Par].ap(Par(IO((a: Int) => a + 1)))(Par(IO{println("hello"); 1}))
 
     def traverseDemo1 = {
       Par.unwrap(
@@ -182,10 +240,10 @@ object SequencingCommands {
       )
     }
 
-    println("traverseDemo1: " + traverseDemo1.unsafeRunSync)
+    println("traverse.sequence...")
+    val prog = Traverse[List].traverse(ios)(Par(_))
+    Par.unwrap(prog).unsafeRunSync()
 
-    println("list created")
-    // val prog = sequence(ios)
     // Note this is a monad so you can now use all the functions such as .replicateA(5)
 
     //println("prog created")

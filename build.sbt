@@ -22,8 +22,8 @@ scalacOptions ++= Seq(
   , "-Xlint"
   , "-Xverify"
   , "-feature"
-  ,"-Xlog-implicit-conversions"
-  ,"-Xlog-implicits"
+  //,"-Xlog-implicit-conversions"
+  //,"-Xlog-implicits"
   //,"-Xfatal-warnings" // Recommend enable before you commit code
   , "-language:_"
   //,"-optimise"
