@@ -172,18 +172,35 @@ object SequencingCommands {
   // }
 
 
-  type IOResult[A] = Tuple3[Long, Int, A]
   type ConstIOStringResult[A] = Const[(Long, Int, String), A]
+  type IOResult[A] = Tuple3[Long, Int, A]
 
   def exampleIO(n: Int) : IO[IOResult[String]] = {
     IO.sleep(n seconds).map(s => (n.toLong, 1, n.toString))
   }
 
- // val ioConstApp = Applicative[IO.Par].compose(Applicative[ConstIOStringResult])
+  val now: IO[Long] = IO(System.currentTimeMillis)
 
-  val testios = List(1,2,3)
+  def time[A](ioa: IO[A]): IO[(Long, A)] = for {
+      start <- now
+      a <- ioa
+      end <- now
+    } yield ((end - start), a)
 
-  //val test = Nested[IO, ConstIOStringResult, String](exampleIO(3).map(r => Const(r)))
+
+  def exampleIO2(n: Int): IO[String] = {
+    IO(println(s"Starting $n")) *>
+    IO.sleep(n seconds) *>
+    IO(println(s"Completed $n")) *>
+    IO.pure(n.toString)
+  }
+
+    val testios = List(1,2,3)
+
+
+  // IO[Const[(Long, Int, String),String]]
+
+  val test= Nested[IO,Const[(Long, Int, String),?], String](time(exampleIO2(3)).map{case (time, a) => Const((time, 1, a))})
 
   val result = Traverse[List].traverse(testios) {
     n =>
@@ -199,18 +216,25 @@ object SequencingCommands {
       )
   }
 
-  val result3 = Traverse[List].traverse(testios) {
+  val result3 = Traverse[List].traverse(List(1,2,3,4,8)) {
     n =>
-      Nested[IO.Par, ConstIOStringResult, String](
-        Par(exampleIO(n)).map(r => Const(r))
+      Nested[IO.Par,Const[(Long, Int, List[String], List[Long]),?], String](
+        Par(time(exampleIO2(n)).map{case (time, a) => Const((time, 1, List(a), List(time)))})
       )
   }
 
+//  Traverse[List].traverse(List(1,2,3,4))((a:Int) => Const[Int,Any](a))
+// res2: Const[Int, List[Any]] = Const(10)
+
   def main(args: Array[String]): Unit = {
 
-    val resultRun = Par.unwrap(result2.value).unsafeRunSync()
+    val resultRun = Par.unwrap(result3.value).unsafeRunSync().getConst
     println(s"result: $resultRun")
 
+    println(s"Total execution time (ms): ${resultRun._1}")
+    println(s"Average time per operation (ms): ${resultRun._1 / resultRun._2}")
+
+    System.exit(0)
 
     val ios = List(
       printIO("Why,"),

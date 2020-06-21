@@ -40,7 +40,7 @@ javacOptions ++= Seq("-Xlint:unchecked", "-Xlint:deprecation", "-source", "1.7",
 //   "-J-XX:+UseGCLogFileRotation -XX:NumberOfGCLogFiles=10 -XX:GCLogFileSize=100M"
 // )
 
-val CatsVersion = "2.2.0-SNAPSHOT"
+val CatsVersion = "Cats 2.2.0-M3"
 val CatsEffectVersion = "2.1.2"
 val MonixVersion = "3.1.0"
 val ZIOVersion = "1.0.0-RC18"
