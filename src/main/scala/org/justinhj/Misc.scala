@@ -4,6 +4,10 @@ object Misc {
   import cats._
   import cats.implicits._
 
+  //val i1 = new IntOrString.IsInt(10)
+
+  // i1.IsInt()
+
   def miffy[A, F[_]: Monad](mb: F[Boolean], fa: F[A], fb: F[A]): F[A] = {
     mb.flatMap{
       b =>

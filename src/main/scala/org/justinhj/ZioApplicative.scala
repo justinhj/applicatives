@@ -15,7 +15,7 @@ object MyApp extends App {
       _ <- myAppLogicParallel;
       _ <- putStrLn("Monadic version\n");
       _ <- myAppLogicSequence
-    ) yield ()).fold(_ => 1, _ => 0)
+    ) yield ()).fold(_ => ExitCode.success, _ => ExitCode.failure)
   }
 
   // Here's a ZIO effect that will wait the specified number of seconds then

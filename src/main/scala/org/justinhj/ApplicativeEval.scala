@@ -123,6 +123,12 @@ object ApplicativeEval {
   // @ Option((a:Int) => (b:Int) => a + b).ap(Some(1)).ap(Some(10))
   // res18: Option[Int] = Some(11)
 
+  // if you have ap and map you have zip
+
+  def zip[F[_] : Applicative, A, B](fa: F[A], fb: F[B]): F[(A,B)] = {
+    fa.map(a => (b: B) => (a,b)).ap(fb)
+  }
+
   def main(args: Array[String]): Unit = {
 
     val envMap = Map("x" -> 7, "y" -> 6, "z" -> 22)

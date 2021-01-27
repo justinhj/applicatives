@@ -136,7 +136,5 @@ object Const {
 
     // Counting find items...
     // Traverse[List].traverse(List(1,2,3,4,3))((n: Int) => if(n == 3) Const.of[String](1) else Const.of[String](0))
-
-
   }
 }

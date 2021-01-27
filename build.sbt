@@ -13,6 +13,7 @@ lazy val applicatives = (project in file(".")).
 scalaVersion := "2.13.1"
 
 addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.11.0" cross CrossVersion.full)
+addCompilerPlugin("org.augustjune" %% "context-applied" % "0.1.4")
 
 // These options will be used for *all* versions.
 scalacOptions ++= Seq(
@@ -40,10 +41,10 @@ javacOptions ++= Seq("-Xlint:unchecked", "-Xlint:deprecation", "-source", "1.7",
 //   "-J-XX:+UseGCLogFileRotation -XX:NumberOfGCLogFiles=10 -XX:GCLogFileSize=100M"
 // )
 
-val CatsVersion = "Cats 2.2.0-M3"
+val CatsVersion = "2.2.0-M3"
 val CatsEffectVersion = "2.1.2"
 val MonixVersion = "3.1.0"
-val ZIOVersion = "1.0.0-RC18"
+val ZIOVersion = "1.0.3"
 val ShapelessVersion = "2.3.3"
 val FS2Version = "2.2.2"
 val AmmoniteVersion = "2.0.0"

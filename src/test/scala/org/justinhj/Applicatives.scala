@@ -6,8 +6,6 @@ class Test1 extends FlatSpec {
 
   "Test1" should "example should pass" in {
 
-    assert(1+1 == 2)
-
+    assert(8+5 == 13)
   }
-
 }

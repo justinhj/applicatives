@@ -85,9 +85,8 @@ object SequencingCommands {
     }
   }
 
-  def genericSequence[F[_], A](ios: List[F[A]])
-    (implicit app: Applicative[F])
-    : F[List[A]] = {
+  def genericSequence[F[_]: Applicative, A](ios: List[F[A]]): F[List[A]] = {
+    val app = implicitly[Applicative[F]]
     ios match {
       case Nil =>
         app.pure(List.empty[A])
@@ -216,11 +215,16 @@ object SequencingCommands {
       )
   }
 
+  type Acc[A] = Const[(Long, Int, List[String], List[Long]),A]
+
   val result3 = Traverse[List].traverse(List(1,2,3,4,8)) {
+    n => Nested[IO.Par, Acc, String](
+      Par(time(exampleIO2(n)).map{case (time, a) => Const((time, 1, List(a), List(time)))}))
+  }
+
+  val result4 = Traverse[List].traverse(List(1,2,3,4,8)) {
     n =>
-      Nested[IO.Par,Const[(Long, Int, List[String], List[Long]),?], String](
         Par(time(exampleIO2(n)).map{case (time, a) => Const((time, 1, List(a), List(time)))})
-      )
   }
 
 //  Traverse[List].traverse(List(1,2,3,4))((a:Int) => Const[Int,Any](a))
@@ -228,29 +232,28 @@ object SequencingCommands {
 
   def main(args: Array[String]): Unit = {
 
-    val resultRun = Par.unwrap(result3.value).unsafeRunSync().getConst
+    val resultRun = Par.unwrap(result3.value).unsafeRunSync.getConst
     println(s"result: $resultRun")
 
     println(s"Total execution time (ms): ${resultRun._1}")
     println(s"Average time per operation (ms): ${resultRun._1 / resultRun._2}")
 
-    System.exit(0)
+    //System.exit(0)
+
+    Traverse[List].traverse(List((10,"hello "),(20,"world")))(a => Const[Tuple2[Int,String],Any](a)).getConst
+    //(Int, String) = (30, "hello world")
+
+     def printIO(out: String): IO[Unit] = {
+      for (
+        _ <- IO.sleep(1 second);
+        _ <- IO(println(out))
+      ) yield ()
+    }
+
 
     val ios = List(
-      printIO("Why,"),
+      printIO("Why"),
       printIO("hello"),
-            printIO("hello1"),
-
-                  printIO("hello2"),
-
-                        printIO("hello3"),
-
-                              printIO("hello4"),
-
-                                    printIO("hello5"),
-
-                                          printIO("hello"),
-
       printIO("there!"))
 
     Par(IO((a: Int) => a + 1)).ap(Par(IO{println("hello"); 1}))
@@ -263,6 +266,8 @@ object SequencingCommands {
        Traverse[List].traverse(ios)(io => Par(io))
       )
     }
+
+    traverseDemo1
 
     println("traverse.sequence...")
     val prog = Traverse[List].traverse(ios)(Par(_))
@@ -282,6 +287,20 @@ object SequencingCommands {
 
     val progT = applicativeTraverse1(List(1,2,3))(a => Option(a))
     println(s"traversed option $progT")
+
+    def inc(n : Int): Int = n + 1
+
+    val incremented = (inc _).some.ap(10.some)
+    val incremented2 = Applicative[Option].ap((inc _).some)(10.some)
+
+
+    def add(a : Int, b: Int): Int = a + b
+    val added =
+      Applicative[Option].
+        ap(((a: Int) => b => add(a,b)).some)(10.some).
+        ap(20.some)
+
+    println(s"incremented: $incremented $incremented2 $added")
 
     // // Using Cats sequence
     // val progCList = NonEmptyList.fromListUnsafe(ios)
