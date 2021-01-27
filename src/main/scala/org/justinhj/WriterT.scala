@@ -23,7 +23,12 @@ object WriterTOldSchool extends App  {
       WriterT(ffa)
     }
 
-    override def tailRecM[A, B](a: A)(f: A => WriterT[F,W,Either[A,B]]): WriterT[F,W,B] = ???
+    // Simple default implementation of tailRecM
+    override def tailRecM[A, B](a: A)(f: A => WriterT[F,W,Either[A,B]]): WriterT[F,W,B] =
+      flatMap(f(a)) {
+        case Right(b) => pure(b)
+        case Left(nextA) => tailRecM(nextA)(f)
+      }
 
   }
 
@@ -32,14 +37,12 @@ object WriterTOldSchool extends App  {
       Monad[WriterT[F,W,?]].flatMap(fa)(a => f(a))
   }
 
-  type StringEither[A] = Either[String, A]
-
-  def incrementEven(a: Int): WriterT[StringEither,String,Int] = {
+  def incrementEven(a: Int): WriterT[Either[String, ?],String,Int] = {
     if(a % 2 == 1) WriterT(Left[String, (String, Int)]("Odd number provided"))
     else WriterT(Right(("Inc even", a + 1)))
   }
 
-  def doubleOdd(a: Int): WriterT[StringEither, String, Int] = {
+  def doubleOdd(a: Int): WriterT[Either[String, ?], String, Int] = {
     if(a % 2 == 0) WriterT(Left[String, (String, Int)]("Even number provided"))
     else WriterT(Right(("Double odd", a + a)))
   }
