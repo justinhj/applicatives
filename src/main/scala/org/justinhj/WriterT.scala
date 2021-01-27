@@ -27,6 +27,11 @@ object WriterTOldSchool extends App  {
 
   }
 
+  implicit class WriterTOps[F[_]: Monad, W: Monoid, A](fa: WriterT[F,W,A]) {
+    def flatMap[B](f: A => WriterT[F,W,B]): WriterT[F,W,B] =
+      Monad[WriterT[F,W,?]].flatMap(fa)(a => f(a))
+  }
+
   type StringEither[A] = Either[String, A]
 
   def incrementEven(a: Int): WriterT[StringEither,String,Int] = {
@@ -39,14 +44,9 @@ object WriterTOldSchool extends App  {
     else WriterT(Right(("Double odd", a + a)))
   }
 
-  val butts = incrementEven(8)
-  val ass = Monad[WriterT[StringEither,String,?]].flatMap(butts)(doubleOdd)
+  val writerExample = incrementEven(8).flatMap(doubleOdd)
 
-//  val ptest = Monad[WriterT[Option,String,Int]].pure(22)
-//  val butts: WriterT[[A] =>> Either[String, A], String, Int] = incrementEven(10)
-//  val ass = butts.fflatMap(doubleOdd)
-
-  println(ass)
+  println(writerExample)
 
 }
 
