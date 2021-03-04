@@ -2,6 +2,8 @@ package org.justinhj
 
 object WriterTOldSchool extends App  {
 
+  // Implement WriterT using Cats implementation of Monad and Monoids
+
   import cats.{Monad, Monoid}
 
   case class WriterT[F[_]: Monad,W,A](val wrapped: F[(W,A)])
@@ -32,9 +34,14 @@ object WriterTOldSchool extends App  {
 
   }
 
-  implicit class WriterTOps[F[_]: Monad, W: Monoid, A](fa: WriterT[F,W,A]) {
+  // Use an implicit class conversion to add flatMap and map as methods to any WriterT ...
+
+  implicit final class WriterTOps[F[_]: Monad, W: Monoid, A](private val fa: WriterT[F,W,A]) {
     def flatMap[B](f: A => WriterT[F,W,B]): WriterT[F,W,B] =
       Monad[WriterT[F,W,?]].flatMap(fa)(a => f(a))
+
+    def map[B](f: A => B): WriterT[F,W,B] =
+      Monad[WriterT[F,W,?]].map(fa)(a => f(a))
   }
 
   def incrementEven(a: Int): WriterT[Either[String, ?],String,Int] = {
@@ -47,9 +54,26 @@ object WriterTOldSchool extends App  {
     else WriterT(Right(("Double odd", a + a)))
   }
 
+  // Step 1 can we flatMap?
+
   val writerExample = incrementEven(8).flatMap(doubleOdd)
 
   println(writerExample)
 
+  // Step 2 can we use pure
+
+  val p8 = Monad[WriterT[Either[String, ?], String, ?]].pure(8)
+
+  println(p8.flatMap(incrementEven).flatMap(doubleOdd))
+
+  // Step 3 use in a for comprehension?
+
+  val r : WriterT[Either[String, ?], String, Int] = for (
+    a <- Monad[WriterT[Either[String, ?], String, ?]].pure(8);
+    b <- incrementEven(a);
+    c <- doubleOdd(b)
+  ) yield c
+
+  println(r)
 }
 

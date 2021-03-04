@@ -9,8 +9,8 @@ lazy val applicatives = (project in file(".")).
     // add other settings here
   )
 
-/* scala versions and options */
-scalaVersion := "2.13.1"
+// /* scala versions and options */
+// scalaVersion := "2.13.1"
 
 addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.11.0" cross CrossVersion.full)
 addCompilerPlugin("org.augustjune" %% "context-applied" % "0.1.4")
@@ -58,6 +58,7 @@ libraryDependencies ++= Seq(
   "com.typesafe.scala-logging" %% "scala-logging" % "3.9.2",
   // Cats
   "org.typelevel" %% "cats-core" % CatsVersion,
+  "org.typelevel" %% "cats-mtl" % "1.1.1",
   "org.typelevel" %% "cats-effect" % CatsEffectVersion,
   // fs2
   "co.fs2" %% "fs2-core" % FS2Version,
@@ -68,6 +69,7 @@ libraryDependencies ++= Seq(
   // scalaz
   "dev.zio" %% "zio" % ZIOVersion,
   "dev.zio" %% "zio-streams" % ZIOVersion,
+  "org.scalaz" %% "scalaz-core" % "7.3.3",
   // type classes
   "com.github.mpilquist" %% "simulacrum" % "0.19.0",
   // li haoyi ammonite repl embed

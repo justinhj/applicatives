@@ -1,5 +1,35 @@
 object Scala2Numeric {
 
+  // Category of Scala functions
+
+  val f: Int => Int = a => a + 1
+  val g: Int => Boolean = b => if(b == 1) true else false
+  val h: Boolean => String = c => if(c == true) "Winner!" else "Loser!"
+
+  // Identity
+  f.compose((a: Int) => identity(a))(0) == f(0)
+
+  f(0) == f.compose((a: Int) => identity(a))(0)
+
+  // Composition must be associative
+  h.compose(g.compose(f))(0) == (h.compose(g.compose(f)))(0)
+
+  // Category of Kleisli arrows
+
+  // // A function has the type
+  // A => B
+
+  // // A Kleisli arror has the type
+  // A => F[B]
+
+  def f[F[_],A,B](a: A): F[B]
+
+  = {
+
+
+    ???
+  }
+
   object Numeric {
     // This can be used to summon a numeric (same as implicitly)
     def apply[T](implicit numeric: Numeric[T]): Numeric[T] = numeric
