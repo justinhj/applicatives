@@ -40,7 +40,7 @@ javacOptions ++= Seq("-Xlint:unchecked", "-Xlint:deprecation", "-source", "1.7",
 //   "-J-XX:+UseGCLogFileRotation -XX:NumberOfGCLogFiles=10 -XX:GCLogFileSize=100M"
 // )
 
-val CatsVersion = "Cats 2.2.0-M3"
+val CatsVersion = "2.3.0"
 val CatsEffectVersion = "2.1.2"
 val MonixVersion = "3.1.0"
 val ZIOVersion = "1.0.0-RC18"
@@ -73,13 +73,7 @@ libraryDependencies ++= Seq(
   "com.lihaoyi" % "ammonite" % AmmoniteVersion % "test" cross CrossVersion.full
 )
 
-//ivyScala := ivyScala.value map { _.copy(overrideScalaVersion = true) }
-
-resolvers ++= Seq(
-  "Typesafe Snapshots" at "http://repo.typesafe.com/typesafe/snapshots/",
-  "Secured Central Repository" at "https://repo1.maven.org/maven2",
-  Resolver.sonatypeRepo("snapshots")
-)
+resolvers ++= Seq(Resolver.DefaultMavenRepository)
 
 // ammonite repl
 sourceGenerators in Test += Def.task {
